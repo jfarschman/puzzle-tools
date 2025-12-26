@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thematic Cipher Generator</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --error-color: #ff7b72;
+            --success-color: #3fb950;
+            --terminal-font: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 { border-bottom: 1px solid #30363d; padding-bottom: 10px; font-size: 1.5rem; }
+
+        .controls {
+            background: #161b22;
+            padding: 20px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 0.85em; font-weight: bold; color: var(--accent-color); }
+        
+        input, select {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: var(--terminal-font);
+        }
+
+        .btn-row {
+            grid-column: span 2;
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            border-top: 1px solid #30363d;
+            padding-top: 15px;
+        }
+
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            flex: 1;
+        }
+        button:hover { background: #2ea043; }
+        
+        button.secondary { background: #1f6feb; } 
+        button.secondary:hover { background: #388bfd; }
+
+        button.utility { background: #30363d; color: #c9d1d9; }
+        button.utility:hover { background: #424a53; }
+
+        /* The Grid Display */
+        #output-container {
+            background: #000;
+            padding: 20px;
+            border: 1px solid #30363d;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .grid-line {
+            font-family: var(--terminal-font);
+            font-size: 16px;
+            white-space: pre;
+            color: #8b949e; 
+            margin-bottom: 2px;
+        }
+
+        /* Validation Overlays */
+        .secret-word { color: #fff; font-weight: bold; }
+        .audit-mode .secret-word { background-color: #d29922; color: #000; }
+        .audit-info { color: var(--error-color); font-size: 0.8em; margin-left: 15px; user-select: none; display: none;}
+        
+        .audit-mode .audit-info { display: inline; }
+
+        .ruler {
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #30363d;
+            padding-bottom: 5px;
+        }
+        
+        .error-msg { color: var(--error-color); font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Thematic Cipher Generator (Landscape)</h1>
+
+    <div class="controls">
+        <div class="input-group" style="grid-column: span 2;">
+            <label>Secret Phrase</label>
+            <input type="text" id="inputPhrase" value="FOLLOW THE BLUE PATH UNTIL YOU SEE THE GIRAFFE" style="width: 100%;">
+        </div>
+        
+        <div class="input-group">
+            <label>Start Column</label>
+            <input type="number" id="startCol" value="5">
+        </div>
+
+        <div class="input-group">
+            <label>Column Step</label>
+            <input type="number" id="stepVal" value="3">
+        </div>
+        
+        <div class="input-group" style="grid-column: span 2;">
+            <label>Aesthetic Theme</label>
+            <select id="themeSelect">
+                <option value="CLASSIFIED">Classified / Technical (Glitch Style)</option>
+                <option value="EGYPT">Egyptology (Broken Tablet Style)</option>
+                <option value="ALICE">Alice in Wonderland (Mad Rambling Style)</option>
+            </select>
+        </div>
+
+        <div class="btn-row">
+            <button onclick="generateGrid()">GENERATE GRID</button>
+            <button class="utility" onclick="toggleAudit()">Toggle Audit View</button>
+            <button class="secondary" onclick="copyCleanText()">Copy Text Only</button>
+            <button onclick="downloadRTF()">Download Formatted .RTF</button>
+        </div>
+    </div>
+
+    <div id="output-container">
+        <div id="ruler" class="grid-line ruler"></div>
+        <div id="grid-output"></div>
+    </div>
+
+<script>
+    // --- THE "PRE-BAKED" INTELLIGENCE ---
+    // Instead of live AI, we use Arrays of thematic sentences.
+    
+    const DATA_BANKS = {
+        "CLASSIFIED": {
+            // Technical style prefers long, unbroken strings to simulate data dumps
+            sentences: [
+                "SYS.ROOT_ADMIN_LOG::[ACCESS_GRANTED]_REF_ID:99283-XK_PROTOCOL",
+                "INITIATED_BY_USER_ROOT_V8.2_CHECK_SUM_VALIDATED_LOADING_DRIVER",
+                "PACK_ALPHA_...connection_established...secure_link_verified...",
+                "OPERATIONAL_STATUS:NOMINAL_..._memory_dump_hex_0x4F_0x9A_...",
+                "latency_check_passed_..._uploading_packet_data_stream_...",
+                "encrypytion_key_rotated_..._syntax_error_line_44_ignored_...",
+                "WARNING:BUFFER_OVERFLOW_DETECTED_IN_SECTOR_7G_RE-ROUTING...",
+                "IP_TRACE_COMPLETE_..._TARGET_LOCKED_..._AWAITING_CONFIRMATION",
+                "BIO-METRIC_SCAN_REQUIRED_..._RETINA_PATTERN_MATCH_CONFIRMED"
+            ],
+            padChar: "."
+        },
+        "EGYPT": {
+            // Egypt style uses academic tone with [missing] markers
+            sentences: [
+                "The_High_Priest_of_Amun_declared_offerings_of_grain_to_the_temple",
+                "Fragment_IV_suggests_a_lineage_dating_back_to_the_Old_Kingdom_era",
+                "In_the_third_year_of_his_reign_the_Nile_flooded_higher_than_usual",
+                "[---]_text_missing_..._cartouche_indicates_royal_birth_[---]",
+                "The_book_of_the_dead_guides_the_soul_through_the_Duat_to_judgment",
+                "He_who_opens_the_ways_..._Anubis_guards_the_scales_of_truth_...",
+                "Excavation_site_B_revealed_papyrus_scrolls_preserved_in_bitumen",
+                "Hieroglyphs_on_the_western_wall_depict_the_festival_of_Opet",
+                "///_damage_to_stone_surface_///_translation_remains_uncertain"
+            ],
+            padChar: "_"
+        },
+        "ALICE": {
+            // Alice style uses whimsical, interrupted sentences
+            sentences: [
+                "Curiouser_and_curiouser_cried_Alice_she_was_so_much_surprised",
+                "The_Mad_Hatter_poured_a_little_hot_tea_upon_its_nose_waking_it",
+                "Off_with_her_head_shouted_the_Queen_at_the_top_of_her_voice_!!",
+                "Twinkle_twinkle_little_bat_how_I_wonder_what_you_are_at_indeed",
+                "I_knew_who_I_was_this_morning_but_I_have_changed_several_times",
+                "We_are_all_mad_here_I_am_mad_you_are_mad_said_the_Cheshire_Cat",
+                "Why_is_a_raven_like_a_writing_desk_have_you_guessed_the_riddle",
+                "It_was_the_best_butter_the_March_Hare_meekly_replied_to_him",
+                "Begin_at_the_beginning_and_go_on_till_you_come_to_the_end_stop"
+            ],
+            padChar: "~" // Whimsical filler
+        }
+    };
+
+    let CLEAN_LINES_CACHE = [];
+
+    function toggleAudit() {
+        document.getElementById('output-container').classList.toggle('audit-mode');
+    }
+
+    // Helper to get random item from array
+    function getRandomLine(themeKey) {
+        const arr = DATA_BANKS[themeKey].sentences;
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateGrid() {
+        const phrase = document.getElementById('inputPhrase').value.trim();
+        const startCol = parseInt(document.getElementById('startCol').value);
+        const step = parseInt(document.getElementById('stepVal').value);
+        const theme = document.getElementById('themeSelect').value;
+        const width = 50; 
+        const padChar = DATA_BANKS[theme].padChar;
+        
+        const outputDiv = document.getElementById('grid-output');
+        const rulerDiv = document.getElementById('ruler');
+        outputDiv.innerHTML = '';
+        CLEAN_LINES_CACHE = []; 
+
+        let rulerText = "";
+        for(let i=1; i<=width; i++) {
+            if(i % 10 === 0) rulerText += (i/10); 
+            else rulerText += ".";
+        }
+        rulerDiv.innerText = rulerText + " [RULER]";
+
+        const words = phrase.split(/\s+/).filter(w => w.length > 0); 
+        const totalLines = Math.max(words.length, 14);
+
+        for (let i = 0; i < totalLines; i++) {
+            const lineNum = i; 
+            const lineContainer = document.createElement('div');
+            lineContainer.className = 'grid-line';
+            
+            let fullLine = ""; 
+            let auditMsg = "";
+            let auditColor = '#3fb950';
+
+            // CASE A: We have a secret word
+            if (i < words.length) {
+                const word = words[i];
+                const targetIndex = (startCol - 1) + (lineNum * step);
+
+                let leftText = "";
+                let leftPaddingNeeded = targetIndex; 
+
+                if (leftPaddingNeeded < 0) {
+                    lineContainer.innerHTML = `<span class="error-msg">ERROR: Word "${word}" off left edge.</span>`;
+                    outputDiv.appendChild(lineContainer);
+                    continue;
+                }
+
+                if (leftPaddingNeeded > 0) {
+                    let charsNeeded = leftPaddingNeeded - 1;
+                    if (charsNeeded > 0) {
+                        // NEW LOGIC: Pick a random sentence and slice the *START* of it
+                        let rawLine = getRandomLine(theme);
+                        // If raw line is too short, repeat it
+                        while(rawLine.length < charsNeeded) rawLine += rawLine;
+                        
+                        // We take the first N chars so it reads like the start of a sentence
+                        leftText = rawLine.substring(0, charsNeeded);
+                        
+                        leftText += " "; 
+                    } else {
+                        leftText = " "; 
+                    }
+                }
+
+                let currentLen = leftText.length + word.length;
+                let remaining = width - currentLen;
+                let rightText = "";
+                
+                if (remaining < 0) {
+                    lineContainer.innerHTML = `<span class="error-msg">ERROR: Word "${word}" off right edge.</span>`;
+                    outputDiv.appendChild(lineContainer);
+                    continue;
+                }
+
+                if (remaining > 0) {
+                    rightText = " "; 
+                    let fillLen = remaining - 1;
+                    if (fillLen > 0) {
+                        // NEW LOGIC: Pick a random sentence for the right side
+                        // To make it look like a continuation or new thought
+                        let rawLine = getRandomLine(theme);
+                        while(rawLine.length < fillLen) rawLine += rawLine;
+                        
+                        rightText += rawLine.substring(0, fillLen);
+                    }
+                }
+
+                fullLine = leftText + word + rightText;
+                
+                const leftSpan = document.createTextNode(leftText);
+                const wordSpan = document.createElement('span');
+                wordSpan.className = 'secret-word';
+                wordSpan.innerText = word;
+                const rightSpan = document.createTextNode(rightText);
+                
+                lineContainer.appendChild(leftSpan);
+                lineContainer.appendChild(wordSpan);
+                lineContainer.appendChild(rightSpan);
+                
+                let actualStart = leftText.length + 1; 
+                auditMsg = `[L:${fullLine.length}|S:${actualStart}]`;
+
+            } else {
+                // CASE B: Pure Filler Line
+                let rawLine = getRandomLine(theme);
+                // Ensure it's long enough
+                while(rawLine.length < width) rawLine += padChar + rawLine;
+                // Crop to 50
+                fullLine = rawLine.substring(0, width);
+
+                const fillerSpan = document.createTextNode(fullLine);
+                lineContainer.appendChild(fillerSpan);
+                
+                auditMsg = `[L:${fullLine.length}|FILLER]`;
+                auditColor = '#8b949e'; 
+            }
+
+            CLEAN_LINES_CACHE.push(fullLine);
+
+            const auditSpan = document.createElement('span');
+            auditSpan.className = 'audit-info';
+            auditSpan.innerText = auditMsg;
+            auditSpan.style.color = (fullLine.length !== 50) ? 'red' : auditColor;
+            
+            lineContainer.appendChild(auditSpan);
+            outputDiv.appendChild(lineContainer);
+        }
+    }
+
+    function copyCleanText() {
+        if(CLEAN_LINES_CACHE.length === 0) generateGrid();
+        const textBlock = CLEAN_LINES_CACHE.join("\n");
+        navigator.clipboard.writeText(textBlock).then(() => {
+            alert("Clean text copied to clipboard!");
+        });
+    }
+
+    function downloadRTF() {
+        if(CLEAN_LINES_CACHE.length === 0) generateGrid();
+
+        let rtfContent = "{\\rtf1\\ansi\\deff0";
+        rtfContent += "\\landscape\\paperw15840\\paperh12240\\margl720\\margr720\\margt720\\margb720";
+        rtfContent += "{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}}";
+        rtfContent += "\\viewkind4\\uc1\\pard\\f0\\fs43\\sl336\\slmult1 ";
+        
+        rtfContent += CLEAN_LINES_CACHE.join("\\par\n");
+        rtfContent += "}";
+
+        const blob = new Blob([rtfContent], { type: "application/rtf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "cipher_puzzle_landscape.rtf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    window.onload = generateGrid;
+    
+</script>
+
+</body>
+</html>
